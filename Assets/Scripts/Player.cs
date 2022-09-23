@@ -29,5 +29,12 @@ namespace Assets.Scripts
 				inputDir = value;
 			}
 		}
+
+		public void ScaleByLevel(int currentLevel)
+		{
+			transform.localScale = Vector3.one * GameManager.LevelScales[currentLevel];
+			Vector3 pos = transform.position;
+			transform.position = new Vector3(pos.x, GameManager.LevelScales[currentLevel], pos.z);
+		}
 	}
 }

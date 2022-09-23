@@ -8,16 +8,25 @@ namespace Assets.Scripts
 	{
 		[SerializeField] private int targetScore;
 		[SerializeField] private int scorePerLevel;
+		[SerializeField] private float cubeSpawnInterval;
 		[SerializeField] private GameUIManager uiManager;
-		[SerializeField] private Collectable[] collectablePrefabs;
+		[SerializeField] private Collectable[] spherePrefabs;
+		[SerializeField] private Collectable[] capsulePrefabs;
+		[SerializeField] private Transform cubePrefab;
 		[SerializeField] private Transform floor;
+		[SerializeField] private Player player;
 		[SerializeField] private LayerMask overlapCheck;
 
 		private int currentLevel;
 		private float startTime;
 		private int currentScore;
 		private Collectable.CollectableType lastCollectedItem;
+		private List<Collectable> spawnedItems;
+		private bool refreshItemTrigger;
+		private float spawnCubeTime;
 
+		public static float[] LevelScales = new float[] { 0.5f, 0.75f, 1f };
+		public static float[] FloorLevelScales = new float[] { 5f, 7.5f, 10f };
 		public static string PlayerLayerName = "Player";
 
 		private const int SEC_IN_MIN = 60;
@@ -25,26 +34,46 @@ namespace Assets.Scripts
 
 		private void Start()
 		{
+			spawnedItems = new List<Collectable>();
 			startTime = Time.time;
 			uiManager.SetLevel(currentLevel + 1);
 			uiManager.SetScore(currentScore);
-			SpawnItem();
-			SpawnItem();
-			SpawnItem();
+			SpawnItem(GetEmptyPos(1f));
+			SpawnItem(GetEmptyPos(1f));
+			SpawnItem(GetEmptyPos(1f));
+
+			spawnCubeTime = Time.time + cubeSpawnInterval;
 		}
 
 		private void Update()
 		{
 			int elapsedSec = Mathf.FloorToInt(Time.time - startTime);
 			uiManager.SetTime(elapsedSec / SEC_IN_MIN, elapsedSec % SEC_IN_MIN);
+			if (refreshItemTrigger)
+			{
+				refreshItemTrigger = false;
+				RefreshItem();
+			}
+			if (Time.time > spawnCubeTime)
+			{
+				SpawnCube(GetEmptyPos(1f));
+				spawnCubeTime += cubeSpawnInterval;
+			}
 		}
 
-		private void SpawnItem()
+		private void SpawnItem(Vector2 pos, Collectable prefab = null)
 		{
-			Collectable newItem = Instantiate(RandomItem());
-			Vector2 pos = GetEmptyPos(1f);
+			Collectable newItem = Instantiate(prefab == null ? RandomItem() : prefab);
 			newItem.SetPosition(pos.x, pos.y);
-			newItem.DestroyEvent += OnCollectedItem;
+			newItem.CollectedEvent += OnCollectedItem;
+
+			spawnedItems.Add(newItem);
+		}
+
+		private void SpawnCube(Vector2 pos)
+		{
+			Transform newCube = Instantiate(cubePrefab);
+			newCube.position = new Vector3(pos.x, newCube.position.y, pos.y);
 		}
 
 		private Vector2 GetEmptyPos(float radius)
@@ -79,13 +108,40 @@ namespace Assets.Scripts
 				{
 					GoToNextLevel();
 				}
-				SpawnItem();
+				SpawnItem(GetEmptyPos(1f));
 			}
 		}
 
 		private void GoToNextLevel()
 		{
+			currentLevel++;
+			player.ScaleByLevel(currentLevel);
+			floor.localScale = new Vector3(FloorLevelScales[currentLevel], 1f, FloorLevelScales[currentLevel]);
 			uiManager.SetLevel(currentLevel + 1);
+			refreshItemTrigger = true;
+		}
+
+		private void RefreshItem()
+		{
+			for (int i = spawnedItems.Count - 1; i >= 0; i--)
+			{
+				Collectable item = spawnedItems[i];
+				spawnedItems.RemoveAt(i);
+				if (item == null)
+				{
+					continue;
+				}
+				switch (item.Type)
+				{
+					case Collectable.CollectableType.Sphere:
+						SpawnItem(item.transform.position, spherePrefabs[currentLevel]);
+						break;
+					case Collectable.CollectableType.Capsule:
+						SpawnItem(item.transform.position, capsulePrefabs[currentLevel]);
+						break;
+				}
+				item.Destroy();
+			}
 		}
 
 		private void EndGame()
@@ -100,9 +156,15 @@ namespace Assets.Scripts
 
 		private Collectable RandomItem()
 		{
-			int level = Random.Range(0, currentLevel);
-			int type = Random.Range(0f, 1f) > 0.5f ? 0 : 1;
-			return collectablePrefabs[type * LEVEL_COUNT + level];
+			int level = currentLevel;
+			if (Random.Range(0f, 1f) > 0.5f)
+			{
+				return spherePrefabs[level];
+			}
+			else
+			{
+				return capsulePrefabs[level];
+			}
 		}
 	}
 }

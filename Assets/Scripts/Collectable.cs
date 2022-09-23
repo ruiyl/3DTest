@@ -7,12 +7,13 @@ namespace Assets.Scripts
 	public class Collectable : MonoBehaviour
 	{
 		[SerializeField] private int score;
-		[SerializeField] private float lifeTimeAfterHit;
-		[SerializeField] CollectableType type;
+		[SerializeField] private CollectableType type;
 
 		private bool isHit;
 
-		public UnityAction<int, CollectableType> DestroyEvent;
+		public CollectableType Type { get => type; }
+
+		public UnityAction<int, CollectableType> CollectedEvent;
 
 		public enum CollectableType
 		{
@@ -21,23 +22,12 @@ namespace Assets.Scripts
 			Capsule,
 		}
 
-		private void Update()
-		{
-			if (isHit)
-			{
-				lifeTimeAfterHit -= Time.deltaTime;
-				if (lifeTimeAfterHit <= 0f)
-				{
-					DestroySelf();
-				}
-			}
-		}
-
 		private void OnCollisionEnter(Collision collision)
 		{
 			if (collision.gameObject.layer == LayerMask.NameToLayer(GameManager.PlayerLayerName))
 			{
-				isHit = true;
+				CollectedEvent?.Invoke(score, type);
+				Destroy();
 			}
 		}
 
@@ -46,9 +36,8 @@ namespace Assets.Scripts
 			transform.position = new Vector3(x, transform.position.y, z);
 		}
 
-		private void DestroySelf()
+		public void Destroy()
 		{
-			DestroyEvent?.Invoke(score, type);
 			Destroy(gameObject);
 		}
 	}
