@@ -9,6 +9,10 @@ namespace Assets.Scripts
 		[SerializeField] private TextMeshProUGUI levelT;
 		[SerializeField] private TextMeshProUGUI timeT;
 		[SerializeField] private TextMeshProUGUI scoreT;
+		[SerializeField] private GameObject endPanel;
+		[SerializeField] private TextMeshProUGUI endTimeT;
+		[SerializeField] private TextMeshProUGUI endScoreT;
+		[SerializeField] private TextMeshProUGUI endCollectedItemT;
 
 		private string levelTformat;
 		private string timeTformat;
@@ -34,6 +38,14 @@ namespace Assets.Scripts
 		public void SetScore(int value)
 		{
 			scoreT.text = string.Format(scoreTformat, value);
+		}
+
+		public void ShowEndPanel(int minute, int sec, int score, int collectedItem)
+		{
+			endPanel.SetActive(true);
+			endTimeT.text = string.Format(endTimeT.text, minute, sec);
+			endScoreT.text = string.Format(endScoreT.text, score);
+			endCollectedItemT.text = string.Format(endCollectedItemT.text, collectedItem);
 		}
 	}
 }

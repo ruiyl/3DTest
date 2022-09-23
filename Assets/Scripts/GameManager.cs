@@ -20,6 +20,7 @@ namespace Assets.Scripts
 		private int currentLevel;
 		private float startTime;
 		private int currentScore;
+		private int collectedObj;
 		private Collectable.CollectableType lastCollectedItem;
 		private List<Collectable> spawnedItems;
 		private bool refreshItemTrigger;
@@ -31,6 +32,13 @@ namespace Assets.Scripts
 
 		private const int SEC_IN_MIN = 60;
 		private const int LEVEL_COUNT = 3;
+
+		private struct GameStat
+		{
+			public string elapsedTime;
+			public int score;
+			public int collectedObj;
+		}
 
 		private void Start()
 		{
@@ -95,6 +103,7 @@ namespace Assets.Scripts
 			{
 				score *= -2;
 			}
+			collectedObj++;
 			lastCollectedItem = type;
 			currentScore += score;
 			uiManager.SetScore(currentScore);
@@ -146,11 +155,24 @@ namespace Assets.Scripts
 
 		private void EndGame()
 		{
-
+			int elapsedSec = Mathf.FloorToInt(Time.time - startTime);
+			int totalMin = elapsedSec / SEC_IN_MIN;
+			int totalSec = elapsedSec % SEC_IN_MIN;
+			GameStat stat = new GameStat
+			{
+				elapsedTime = string.Format("{0:00}m{1:00}s", totalMin, totalSec),
+				score = currentScore,
+				collectedObj = collectedObj
+			};
+			System.IO.File.WriteAllText("stat.txt", JsonUtility.ToJson(stat));
+			uiManager.ShowEndPanel(totalMin, totalSec, currentScore, collectedObj);
+			player.enabled = false;
+			enabled = false;
 		}
 
 		public void QuitGame()
 		{
+			EndGame();
 			Application.Quit();
 		}
 
